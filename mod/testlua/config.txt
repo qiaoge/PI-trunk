@@ -1,0 +1,8 @@
+#LUA Thread Run
+#Path = /testGpio.lua
+#TaskSize = 4096
+#Priority = -1
+
+Path = /test_mlvds_send.lua
+TaskSize = 4096
+Priority = -1

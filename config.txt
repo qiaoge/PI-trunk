@@ -1,0 +1,24 @@
+#LUA Thread Run
+#Path = /testGpio.lua
+#TaskSize = 4096
+#Priority = -1
+
+#Path = /testGpio2.lua
+#TaskSize = 4096
+#Priority = -1
+
+#Path = /testuart.lua
+#TaskSize = 4096
+#Priority = -1
+
+#Path = /HMC5883L.lua
+#TaskSize = 4096
+#Priority = -1
+
+#Path = /I2C24c64.lua
+#TaskSize = 4096
+#Priority = -1
+
+Path = /testlua.lua
+TaskSize = 4096
+Priority = -1

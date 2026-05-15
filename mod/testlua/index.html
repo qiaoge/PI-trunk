@@ -1,0 +1,582 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 1rem;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .app-container {
+            display: flex;
+            height: 96vh;
+            gap: 1rem;
+        }
+
+        .panel-dev {
+            flex: 1;
+            max-width: 250px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            overflow: visible !important;
+        }
+
+        .panel {
+            flex: 1;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #f0f0f0;
+        }
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lua-management {
+            display: flex;
+            height: 150px;
+            gap: 1rem;
+            padding: 0.5rem;
+        }
+
+        .lua-list-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+        }
+
+        .tree_contents {
+            margin-left: 15px;
+        }
+        .dev-item {
+            margin-left: 0px;
+        }
+        .dev-item:hover ,.bus_item:hover{
+            background-color: #add7f3;
+        }
+
+        .dev-item.active {
+            background-color: #e0f0ff;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: left;
+            max-width: 300px; 
+            min-width: 120px; 
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            word-wrap: break-word; 
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        .tooltip.right {
+            left: calc(150% + 10px);
+            top: 50%;
+            transform: translateY(-10%);
+        }
+        .icon {
+            display: inline-block;
+            position: relative;
+        }
+        .device-icon:hover .tooltip{
+            visibility: visible;
+            opacity: 1;
+        }
+        .control-buttons {
+            display: grid;
+            gap: 0.5rem;
+            max-width: 100px;
+            height: 50px;
+        }
+
+        .restart-button {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition:
+                opacity 0.2s,
+                transform 0.2s;
+        }
+
+        .restart-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .button-restart { background-color: #4CAF50; color: white; }
+        .heap-status {
+            right: auto;
+            padding: 0.5rem;
+            font-size: 14px;
+            text-align: center;
+        }
+        .textarea {
+            flex: 1;
+            width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            resize: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .inputarea {
+            flex: 1;
+            max-height: 30px;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            resize: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-y: auto;
+        }
+        .expanded .folder-icon::before {
+            content: '⬇';
+        }
+        
+        .collapsed .folder-icon::before {
+            content: '➡';
+        }
+
+        .device-icon::before {
+            content: '🔩';
+        }
+        .dev-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .connection-status.connected { background: #4CAF50; color: white; }
+        .connection-status.disconnected { background: #f44336; color: white; }
+        .connection-status.reconnecting { background: #FF9800; color: white; }
+
+    </style>
+</head>
+<body>
+    <h1>MOD控制台</h1>
+    <div class="app-container">
+        <div class="panel-dev">
+            <table class="data-table" id="tree-table">
+                <thead><tr><th>设备树</th></tr></thead>
+            </table>
+            <div class="tree_contents" id="dev-tree">
+                <!--<div class="bus_item expanded">
+                    <div class="icon folder-icon">SPI
+                        <div class="dev-item">
+                            <div class="icon device-icon">test1
+                                <div class="tooltip right">
+                                    test131q4e1tgsg
+                                    213151513245
+                                </div>
+                            </div>
+                        </div> 
+                    </div>   
+                </div>--> 
+            </div>
+        </div>
+
+        <div class="panel control-panel">
+            <table class="data-table">
+                <thead><tr><th>lua线程管理器</th></tr></thead>
+            </table>
+            <div class="lua-management">
+                <div class="lua-list-container" id="threadList"></div>
+                <div class="control-buttons">
+                    <button class="restart-button button-restart" id="btnRestart">🔄重启lua</button>
+                    <s1>剩余RAM:</s1>
+                    <div id="HeapStatus" class="heap-status">    </div>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>终端</th></tr></thead>
+            </table>
+            <textarea
+                class="textarea"
+                id="printDisplay"
+                readonly
+                spellcheck="false"
+            ></textarea>
+            <textarea
+                class="inputarea"
+                id="tasinput"
+                placeholder="Input then enter ↩"
+                spellcheck="false"
+            ></textarea>
+        </div>
+    </div>
+    <div id="connectionStatus" class="connection-status">连接中...</div>
+    <script> 
+        const eventSourceManager = {
+            eventSource: null,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 5,
+            reconnectInterval: 10000,
+            connectionStatus: null,
+
+            init() {
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.connect();
+            },
+
+            connect() {
+                this.eventSource = new EventSource('/events.event');
+                
+                this.eventSource.onopen = () => {
+                    console.log('SSE 连接已建立');
+                    this.connectionStatus.textContent = '已连接';
+                    this.connectionStatus.className = 'connection-status connected';
+                    this.reconnectAttempts = 0;
+                };
+
+                this.eventSource.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        this.handleMessage(message);
+                    } catch (e) {
+                        console.error('消息解析错误:', e);
+                    }
+                };
+                
+                this.eventSource.addEventListener('dev_tree', (event) => {
+                    deviceTreeManager.updateDeviceTree(event.data);
+                });
+                
+                this.eventSource.addEventListener('lua_thread', (event) => {
+                    const data = JSON.parse(event.data);
+                    luaThreadManager.updateThreadList(data);
+                });
+                
+                this.eventSource.addEventListener('str_output', (event) => {
+                    const data = JSON.parse(event.data);
+                    terminalManager.appendOutput(data);
+                });
+                this.eventSource.addEventListener('free_memory', (event) => {
+                    const data = JSON.parse(event.data);
+                    this.updateHeapStatus(data);
+                });
+                this.eventSource.onerror = (error) => {
+                    console.error('SSE错误:', error);
+                    this.connectionStatus.textContent = '连接错误';
+                    this.connectionStatus.className = 'connection-status disconnected';
+                    this.reconnect();
+                };
+            },
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'dev_tree':
+                        deviceTreeManager.updateDeviceTree(message.data);
+                        break;
+                    case 'lua_thread':
+                        luaThreadManager.updateThreadList(message.data);
+                        break;
+                    case 'str_output':
+                        terminalManager.appendOutput(message.data);
+                        break;
+                    case 'free_memory':
+                        this.updateHeapStatus(message.data);
+                        break;
+                    default:
+                        console.log('未知消息类型:', message);
+                }
+            },
+            
+            updateHeapStatus(data) {
+                const heapElement = document.getElementById('HeapStatus');
+                if (!heapElement || data == null) return;
+                let formattedMemory;
+                formattedMemory = (data / 1024).toFixed(3) + ' KB';
+                heapElement.textContent = `${formattedMemory}`;
+            },
+            reconnect() {
+                if (this.eventSource) {
+                    this.eventSource.close();
+                }
+                
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    this.connectionStatus.textContent = `重连中 (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
+                    this.connectionStatus.className = 'connection-status reconnecting';
+                    
+                    setTimeout(() => this.connect(), this.reconnectInterval);
+                }
+            },
+
+        };
+        const deviceTreeManager = {
+            rootFolder: document.getElementById('dev-tree'),
+
+            init() {
+                this.rootFolder.addEventListener('click', (e) => {
+                    const busItem = e.target.closest('.bus_item');
+                    if (busItem) {
+                        this.toggleFolder(e);
+                    }
+                });
+            },
+
+            toggleFolder(e) {
+                e.stopPropagation();
+                const item = e.target.closest('.bus_item');
+                if (!item) return;
+                
+                const isExpanded = item.classList.contains('expanded');
+                const contents = item.nextElementSibling;
+                
+                if (isExpanded) {
+                    item.classList.remove('expanded');
+                    item.classList.add('collapsed');
+                    if (contents) contents.style.display = 'none';
+                } else {
+                    item.classList.remove('collapsed');
+                    item.classList.add('expanded');
+                    if (contents) contents.style.display = 'block';
+                }
+            },
+
+            updateDeviceTree(messageData) {
+                const busContents = document.getElementById('dev-tree');
+                if (!busContents) return;
+                
+                try {
+                    const jsonStr = messageData.replace('dev_tree:', '').trim();
+                    const busArray = JSON.parse(jsonStr);
+                    this.renderTree(busArray, busContents);
+                } catch (error) {
+                    console.error('设备树数据解析失败:', error);
+                    terminalManager.appendOutput(`设备树渲染错误: ${error.message}`);
+                }
+            },
+
+            renderTree(treeData, container) {
+                container.innerHTML = '';
+
+                if (!Array.isArray(treeData) || treeData.length === 0) {
+                    container.innerHTML = '<div class="no-data">暂无设备数据</div>';
+                    return;
+                }
+                const fragment = document.createDocumentFragment();
+                
+                treeData.forEach(bus => {
+                    if (bus.name && bus.device) {
+                        const busElement = this.createBusElement(bus);
+                        fragment.appendChild(busElement);
+                    }
+                });
+                
+                container.appendChild(fragment);
+            },
+
+            createBusElement(bus) {
+                const busWrapper = document.createElement('div');
+                
+                const busElement = document.createElement('div');
+                busElement.className = 'bus_item expanded';
+                busElement.dataset.name = bus.name;
+                busElement.innerHTML = `<div class="icon folder-icon"><span>${bus.name}</span></div>`;
+                
+                const contents = document.createElement('div');
+                contents.className = 'tree_contents';
+                
+                if (Array.isArray(bus.device)) {
+                    bus.device.forEach(device => {
+                        if (device.name) {
+                            const deviceElement = this.createDeviceElement(device);
+                            contents.appendChild(deviceElement);
+                        }
+                    });
+                }
+                
+                busWrapper.appendChild(busElement);
+                busWrapper.appendChild(contents);
+                return busWrapper;
+            },
+
+            createDeviceElement(device) {
+                const deviceElement = document.createElement('div');
+                deviceElement.className = 'dev-item';
+                deviceElement.dataset.name = device.name;
+                deviceElement.innerHTML = `<div class="icon device-icon"><span>${device.name}</span>
+                                            <div class="tooltip right" id="detail-tooltip">
+                                                Describe : ${device.describe||'NULL'}<br>
+                                                Input : ${device.input||'NULL'}<br>
+                                                Output : ${device.output||'NULL'}<br>
+                                            </div>
+                                          </div>`;
+                return deviceElement;
+            },
+        };
+
+        const luaThreadManager = {
+            threadList: document.getElementById('threadList'),
+
+            updateThreadList(threads) {
+                if (!threads || !Array.isArray(threads)) return;
+                
+                this.threadList.innerHTML = '';
+                
+                threads.forEach(thread => {
+                    const threadItem = document.createElement('div');
+                    threadItem.className = 'thread-item';
+                    threadItem.dataset.threadname = thread.name;
+                    threadItem.innerHTML = `
+                        <p>
+                            <span class="thread-name">${thread.name}</span> 
+                            <br><small>RAM: ${thread.memory}KB</small>
+                        </p>
+                    `;
+                    
+                    this.threadList.appendChild(threadItem);
+                });
+            }
+        };
+
+        const terminalManager = {
+            output: document.getElementById('printDisplay'),
+            input: document.getElementById('tasinput'),
+            commandHistory: [],
+            historyIndex: -1,
+
+            init() {
+                this.input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.processCommand();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.navigateHistory(-1);
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        this.navigateHistory(1);
+                    }
+                });
+            },
+
+            processCommand() {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {controller.abort();}, 2000);
+                const command = this.input.value.trim();
+                if (!command) return;
+                
+                this.commandHistory.push(command);
+                this.historyIndex = this.commandHistory.length;
+                
+                fetch(`/str_input:${command}`).then(response => {
+                    clearTimeout(timeoutId);
+                    return response.json();
+                }).catch(error => {
+					clearTimeout(timeoutId);
+				});
+
+                this.input.value = '';
+            },
+
+            appendOutput(text) {
+                if (Array.isArray(text)) {
+                    const str = text.map(item => String(item)).join('\n');
+                    this.output.value += str + '\n';
+                }else{
+                    this.output.value += text + '\n';
+                }
+                this.output.scrollTop = this.output.scrollHeight;
+            },
+
+            navigateHistory(direction) {
+                if (this.commandHistory.length === 0) return;
+                
+                this.historyIndex = Math.max(0, Math.min(this.commandHistory.length - 1, this.historyIndex + direction));
+                this.input.value = this.commandHistory[this.historyIndex] || '';
+            }
+        };
+
+         const controlSystem = {
+            init() {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {controller.abort();}, 2000);
+                document.getElementById('btnRestart').addEventListener('click', () => {
+                    fetch(`/restart_lua`).then(response => {
+                    clearTimeout(timeoutId);
+                    return response.json();
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                    });
+                    terminalManager.appendOutput('> 发送Lua重启命令...');
+                });
+                document.getElementById('tree-table').addEventListener('click', (e) => {
+                    fetch(`/refresh_devtree`).then(response => {
+                    clearTimeout(timeoutId);
+                    return response.json();
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                    });
+                    terminalManager.appendOutput('> 发送设备树刷新命令...');
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            eventSourceManager.init();
+            deviceTreeManager.init();
+            terminalManager.init();
+            controlSystem.init();
+            
+            const statusElement = document.createElement('div');
+            statusElement.id = 'connectionStatus';
+            statusElement.className = 'connection-status';
+            statusElement.style = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 14px;
+            `;
+            document.body.appendChild(statusElement);
+            
+            const style = document.createElement('style');
+            style.textContent = `
+                .connection-status.connected { background: #4CAF50; color: white; }
+                .connection-status.disconnected { background: #f44336; color: white; }
+                .connection-status.reconnecting { background: #FF9800; color: white; }
+            `;
+            document.head.appendChild(style);
+        });
+
+    </script>
+</body>
+</html>
+
+

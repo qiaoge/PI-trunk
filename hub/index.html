@@ -1,0 +1,1002 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 1rem;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .app-container {
+            display: flex;
+            height: 96vh;
+            gap: 1rem;
+        }
+
+        .panel-dev {
+            flex: 1;
+            max-width: 250px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            overflow: visible !important;
+        }
+
+        .panel {
+            flex: 1;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #f0f0f0;
+        }
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lua-management {
+            display: flex;
+            height: 150px;
+            gap: 1rem;
+            padding: 0.5rem;
+        }
+
+        .lua-list-container {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+        }
+
+        .tree_contents {
+            margin-left: 15px;
+        }
+        .dev-item {
+            margin-left: 0px;
+        }
+        .dev-item:hover ,.bus_item:hover{
+            background-color: #add7f3;
+        }
+
+        .dev-item.active {
+            background-color: #e0f0ff;
+        }
+
+        .tooltip {
+            visibility: hidden;
+            position: absolute;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            text-align: left;
+            max-width: 300px; 
+            min-width: 120px; 
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+            word-wrap: break-word; 
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+        .tooltip.right {
+            left: calc(150% + 10px);
+            top: 50%;
+            transform: translateY(-10%);
+        }
+        .icon {
+            display: inline-block;
+            position: relative;
+        }
+        .device-icon:hover .tooltip{
+            visibility: visible;
+            opacity: 1;
+        }
+        .control-buttons {
+            display: grid;
+            gap: 0.5rem;
+            max-width: 100px;
+            height: 50px;
+        }
+
+        .restart-button {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition:
+                opacity 0.2s,
+                transform 0.2s;
+        }
+
+        .restart-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .button-restart { background-color: #4CAF50; color: white; }
+        .heap-status {
+            right: auto;
+            padding: 0.5rem;
+            font-size: 14px;
+            text-align: center;
+        }
+        .textarea {
+            flex: 1;
+            width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            resize: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .inputarea {
+            flex: 1;
+            min-height: 38px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            resize: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+        .terminal-input-bar {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding-top: 0.5rem;
+        }
+        .device-select {
+            min-width: 220px;
+            max-width: 280px;
+            min-height: 38px;
+            padding: 0.45rem 0.55rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            background: #fff;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .send-button {
+            min-height: 38px;
+            padding: 0.45rem 0.8rem;
+            border: 1px solid #2e7d32;
+            border-radius: 0.25rem;
+            background: #4CAF50;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .expanded .folder-icon::before {
+            content: '⬇';
+        }
+        
+        .collapsed .folder-icon::before {
+            content: '➡';
+        }
+
+        .device-icon::before {
+            content: '🔩';
+        }
+        .dev-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mlvds-status {
+            display: block;
+            color: #1f6f8b;
+            font-size: 11px;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .connection-status.connected { background: #4CAF50; color: white; }
+        .connection-status.disconnected { background: #f44336; color: white; }
+        .connection-status.reconnecting { background: #FF9800; color: white; }
+
+    </style>
+</head>
+<body>
+    <h1>Pi-Trunk HUB</h1>
+    <div class="app-container">
+        <div class="panel-dev">
+            <table class="data-table" id="tree-table">
+                <thead><tr><th>Device Tree</th></tr></thead>
+            </table>
+            <div class="tree_contents" id="dev-tree">
+            </div>
+        </div>
+
+        <div class="panel control-panel">
+            <table class="data-table">
+                <thead><tr><th>Lua Thread Manager</th></tr></thead>
+            </table>
+            <div class="lua-management">
+                <div class="lua-list-container" id="threadList"></div>
+                <div class="control-buttons">
+                    <button class="restart-button button-restart" id="btnRestart">🔄Restart Lua</button>
+                    <s1>Free RAM:</s1>
+                    <div id="HeapStatus" class="heap-status">    </div>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Terminal</th></tr></thead>
+            </table>
+            <textarea
+                class="textarea"
+                id="printDisplay"
+                readonly
+                spellcheck="false"
+            ></textarea>
+            <div class="terminal-input-bar">
+                <select id="deviceSelect" class="device-select"></select>
+                <input
+                    class="inputarea"
+                    id="tasinput"
+                    placeholder="Select device then enter command"
+                    spellcheck="false"
+                />
+                <button id="btnSendInput" class="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+    <div id="connectionStatus" class="connection-status">Connecting...</div>
+    <script> 
+        const eventSourceManager = {
+            eventSource: null,
+            reconnectAttempts: 0,
+            maxReconnectAttempts: 5,
+            reconnectInterval: 10000,
+            connectionStatus: null,
+
+            init() {
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.connect();
+            },
+
+            connect() {
+                this.eventSource = new EventSource('/events.event');
+                
+                this.eventSource.onopen = () => {
+                    console.log('SSE connection established');
+                    this.connectionStatus.textContent = 'Connected';
+                    this.connectionStatus.className = 'connection-status connected';
+                    this.reconnectAttempts = 0;
+                };
+
+                this.eventSource.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        this.handleMessage(message);
+                    } catch (e) {
+                        console.error('Message parse error:', e);
+                    }
+                };
+                
+                this.eventSource.addEventListener('dev_tree', (event) => {
+                    deviceTreeManager.updateDeviceTree(event.data);
+                });
+                
+                this.eventSource.addEventListener('lua_thread', (event) => {
+                    const data = JSON.parse(event.data);
+                    luaThreadManager.updateThreadList(data);
+                });
+                
+                this.eventSource.addEventListener('str_output', (event) => {
+                    const data = JSON.parse(event.data);
+                    terminalManager.appendOutput(data);
+                });
+                this.eventSource.addEventListener('free_memory', (event) => {
+                    const data = JSON.parse(event.data);
+                    this.updateHeapStatus(data);
+                });
+                this.eventSource.onerror = (error) => {
+                    console.error('SSE error:', error);
+                    this.connectionStatus.textContent = 'Connection error';
+                    this.connectionStatus.className = 'connection-status disconnected';
+                    this.reconnect();
+                };
+            },
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'dev_tree':
+                        deviceTreeManager.updateDeviceTree(message.data);
+                        break;
+                    case 'lua_thread':
+                        luaThreadManager.updateThreadList(message.data);
+                        break;
+                    case 'str_output':
+                        terminalManager.appendOutput(message.data);
+                        break;
+                    case 'free_memory':
+                        this.updateHeapStatus(message.data);
+                        break;
+                    default:
+                        console.log('Unknown message type:', message);
+                }
+            },
+            
+            updateHeapStatus(data) {
+                const heapElement = document.getElementById('HeapStatus');
+                if (!heapElement || data == null) return;
+                let formattedMemory;
+                formattedMemory = (data / 1024).toFixed(3) + ' KB';
+                heapElement.textContent = `${formattedMemory}`;
+            },
+            reconnect() {
+                if (this.eventSource) {
+                    this.eventSource.close();
+                }
+                
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    this.connectionStatus.textContent = `Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
+                    this.connectionStatus.className = 'connection-status reconnecting';
+                    
+                    setTimeout(() => this.connect(), this.reconnectInterval);
+                }
+            },
+
+        };
+        const deviceTreeManager = {
+            rootFolder: document.getElementById('dev-tree'),
+            busNodeCache: new Map(),
+
+            init() {
+                this.rootFolder.addEventListener('click', (e) => {
+                    const devItem = e.target.closest('.dev-item');
+                    if (devItem) {
+                        this.setActiveDevice(devItem.dataset.bus, devItem.dataset.name);
+                    }
+                });
+            },
+
+            setActiveDevice(busName, deviceName) {
+                if (!busName || !deviceName) {
+                    return;
+                }
+                const allNodes = this.rootFolder.querySelectorAll('.dev-item');
+                allNodes.forEach((node) => {
+                    const match = node.dataset.bus === busName && node.dataset.name === deviceName;
+                    node.classList.toggle('active', match);
+                });
+                if (typeof terminalManager !== 'undefined' && terminalManager.setSelectedDevice) {
+                    terminalManager.setSelectedDevice(busName, deviceName);
+                }
+            },
+
+            clearActiveDevice() {
+                const allNodes = this.rootFolder.querySelectorAll('.dev-item.active');
+                allNodes.forEach((node) => node.classList.remove('active'));
+            },
+
+            updateDeviceTree(messageData) {
+                if (!this.rootFolder) return;
+                
+                try {
+                    const jsonStr = messageData.replace('dev_tree:', '').trim();
+                    const busArray = JSON.parse(jsonStr);
+                    this.patchTree(busArray);
+                } catch (error) {
+                    console.error('Failed to parse device tree data:', error);
+                    terminalManager.appendOutput(`Device tree render error: ${error.message}`);
+                }
+            },
+
+            patchTree(treeData) {
+                if (!Array.isArray(treeData)) {
+                    return;
+                }
+
+                if (treeData.length === 0) {
+                    this.rootFolder.innerHTML = '<div class="no-data">No device data available</div>';
+                    this.busNodeCache.clear();
+                    this.clearActiveDevice();
+                    if (typeof terminalManager !== 'undefined' && terminalManager.updateDeviceTargets) {
+                        terminalManager.updateDeviceTargets([]);
+                    }
+                    return;
+                }
+
+                const noDataNode = this.rootFolder.querySelector('.no-data');
+                if (noDataNode) {
+                    noDataNode.remove();
+                }
+
+                const seenBus = new Set();
+                const allDevices = [];
+                treeData.forEach((bus) => {
+                    if (!bus || !bus.name || !Array.isArray(bus.device)) {
+                        return;
+                    }
+                    seenBus.add(bus.name);
+                    bus.device.forEach((device) => {
+                        if (device && device.name) {
+                            allDevices.push({
+                                bus: bus.name,
+                                name: device.name,
+                                inputRegistered: Boolean(device.input_registered),
+                                inputHint: typeof device.input_hint === 'string' ? device.input_hint : ''
+                            });
+                        }
+                    });
+
+                    let busRecord = this.busNodeCache.get(bus.name);
+                    if (!busRecord) {
+                        busRecord = this.createBusElement(bus.name);
+                        this.busNodeCache.set(bus.name, busRecord);
+                        this.rootFolder.appendChild(busRecord.wrapper);
+                    }
+
+                    this.patchBusDevices(busRecord, bus.device, bus.name);
+                });
+
+                for (const [busName, busRecord] of this.busNodeCache.entries()) {
+                    if (!seenBus.has(busName)) {
+                        busRecord.wrapper.remove();
+                        this.busNodeCache.delete(busName);
+                    }
+                }
+                if (typeof terminalManager !== 'undefined' && terminalManager.updateDeviceTargets) {
+                    terminalManager.updateDeviceTargets(allDevices);
+                }
+            },
+
+            createBusElement(busName) {
+                const busWrapper = document.createElement('div');
+                const busElement = document.createElement('div');
+                busElement.className = 'bus_item';
+                busElement.dataset.name = busName;
+                busElement.innerHTML = `<div class="icon folder-icon"><span>${busName}</span></div>`;
+                
+                const contents = document.createElement('div');
+                contents.className = 'tree_contents';
+
+                busWrapper.appendChild(busElement);
+                busWrapper.appendChild(contents);
+                return {
+                    wrapper: busWrapper,
+                    busElement,
+                    contents,
+                    deviceNodeCache: new Map()
+                };
+            },
+
+            patchBusDevices(busRecord, devices, busName) {
+                const seenDevice = new Set();
+
+                devices.forEach((device) => {
+                    if (!device || !device.name) {
+                        return;
+                    }
+                    seenDevice.add(device.name);
+
+                    let deviceElement = busRecord.deviceNodeCache.get(device.name);
+                    if (!deviceElement) {
+                        deviceElement = this.createDeviceElement(device.name, busName);
+                        busRecord.deviceNodeCache.set(device.name, deviceElement);
+                        busRecord.contents.appendChild(deviceElement);
+                    }
+
+                    this.updateDeviceElement(deviceElement, device, busName);
+                });
+
+                for (const [deviceName, deviceElement] of busRecord.deviceNodeCache.entries()) {
+                    if (!seenDevice.has(deviceName)) {
+                        deviceElement.remove();
+                        busRecord.deviceNodeCache.delete(deviceName);
+                    }
+                }
+            },
+
+            createDeviceElement(deviceName, busName) {
+                const deviceElement = document.createElement('div');
+                deviceElement.className = 'dev-item';
+                deviceElement.dataset.name = deviceName;
+                deviceElement.dataset.bus = busName;
+
+                const icon = document.createElement('div');
+                icon.className = 'icon device-icon';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'device-name';
+                icon.appendChild(nameSpan);
+
+                const inlineStatus = document.createElement('small');
+                inlineStatus.className = 'mlvds-status';
+                icon.appendChild(inlineStatus);
+
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip right';
+
+                const describeRow = document.createElement('div');
+                const inputRow = document.createElement('div');
+                const outputRow = document.createElement('div');
+                describeRow.className = 'tooltip-describe';
+                inputRow.className = 'tooltip-input';
+                outputRow.className = 'tooltip-output';
+
+                tooltip.appendChild(describeRow);
+                tooltip.appendChild(inputRow);
+                tooltip.appendChild(outputRow);
+
+                icon.appendChild(tooltip);
+                deviceElement.appendChild(icon);
+
+                deviceElement._refs = {
+                    nameSpan,
+                    inlineStatus,
+                    describeRow,
+                    inputRow,
+                    outputRow
+                };
+                return deviceElement;
+            },
+
+            updateDeviceElement(deviceElement, device, busName) {
+                const refs = deviceElement._refs || {};
+                const outputText = device.output || 'NULL';
+                const isHovering = deviceElement.matches(':hover');
+
+                deviceElement.dataset.name = device.name;
+                deviceElement.dataset.bus = busName;
+
+                // Keep hover stable: avoid mutating text nodes while pointer stays on this device row.
+                if (isHovering) {
+                    return;
+                }
+
+                if (refs.nameSpan) {
+                    refs.nameSpan.textContent = device.name;
+                }
+
+                if (refs.inlineStatus) {
+                    if (busName === 'MLVDS') {
+                        refs.inlineStatus.style.display = 'block';
+                        refs.inlineStatus.textContent = `Lua: ${outputText}`;
+                    } else {
+                        refs.inlineStatus.style.display = 'none';
+                        refs.inlineStatus.textContent = '';
+                    }
+                }
+
+                if (refs.describeRow) {
+                    refs.describeRow.textContent = `Describe : ${device.describe || 'NULL'}`;
+                }
+                if (refs.inputRow) {
+                    refs.inputRow.textContent = `Input : ${device.input || 'NULL'}`;
+                }
+                if (refs.outputRow) {
+                    refs.outputRow.textContent = `Output : ${outputText}`;
+                }
+            }
+        };
+
+        const luaThreadManager = {
+            threadList: document.getElementById('threadList'),
+
+            updateThreadList(threads) {
+                if (!threads || !Array.isArray(threads)) return;
+                
+                this.threadList.innerHTML = '';
+                
+                threads.forEach(thread => {
+                    const threadItem = document.createElement('div');
+                    threadItem.className = 'thread-item';
+                    threadItem.dataset.threadname = thread.name;
+                    threadItem.innerHTML = `
+                        <p>
+                            <span class="thread-name">${thread.name}</span> 
+                            <br><small>RAM: ${thread.memory}B</small>
+                        </p>
+                    `;
+                    
+                    this.threadList.appendChild(threadItem);
+                });
+            }
+        };
+
+        const terminalManager = {
+            output: document.getElementById('printDisplay'),
+            input: document.getElementById('tasinput'),
+            deviceSelect: document.getElementById('deviceSelect'),
+            sendButton: document.getElementById('btnSendInput'),
+            deviceTargets: new Map(),
+            commandHistory: [],
+            historyIndex: -1,
+
+            init() {
+                this.input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.processCommand();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.navigateHistory(-1);
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        this.navigateHistory(1);
+                    }
+                });
+                if (this.sendButton) {
+                    this.sendButton.addEventListener('click', () => this.processCommand());
+                }
+                if (this.deviceSelect) {
+                    this.deviceSelect.addEventListener('change', () => {
+                        const selected = this.getSelectedDevice();
+                        if (selected) {
+                            deviceTreeManager.setActiveDevice(selected.bus, selected.name);
+                        } else {
+                            deviceTreeManager.clearActiveDevice();
+                        }
+                    });
+                }
+                this.updateDeviceTargets([]);
+            },
+
+            updateDeviceTargets(devices) {
+                if (!this.deviceSelect) {
+                    return;
+                }
+
+                const previousKey = this.deviceSelect.value;
+                this.deviceTargets.clear();
+                this.deviceSelect.innerHTML = '';
+
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Select connected device';
+                this.deviceSelect.appendChild(placeholderOption);
+
+                devices.forEach((device) => {
+                    if (!device || !device.bus || !device.name) {
+                        return;
+                    }
+                    const isMlvds = device.bus === 'MLVDS';
+                    const isRegistered = Boolean(device.inputRegistered);
+                    if (!isMlvds && !isRegistered) {
+                        return;
+                    }
+                    const key = `${device.bus}|||${device.name}`;
+                    this.deviceTargets.set(key, device);
+
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${device.bus} / ${device.name}`;
+                    this.deviceSelect.appendChild(option);
+                });
+
+                if (this.deviceTargets.size === 0) {
+                    this.deviceSelect.value = '';
+                    deviceTreeManager.clearActiveDevice();
+                    return;
+                }
+
+                if (this.deviceTargets.has(previousKey)) {
+                    this.deviceSelect.value = previousKey;
+                } else {
+                    const firstKey = this.deviceTargets.keys().next().value;
+                    this.deviceSelect.value = firstKey || '';
+                }
+
+                const selected = this.getSelectedDevice();
+                if (selected) {
+                    deviceTreeManager.setActiveDevice(selected.bus, selected.name);
+                } else {
+                    deviceTreeManager.clearActiveDevice();
+                }
+            },
+
+            setSelectedDevice(busName, deviceName) {
+                if (!this.deviceSelect || !busName || !deviceName) {
+                    return;
+                }
+                const key = `${busName}|||${deviceName}`;
+                if (this.deviceTargets.has(key)) {
+                    this.deviceSelect.value = key;
+                }
+            },
+
+            getSelectedDevice() {
+                if (!this.deviceSelect) {
+                    return null;
+                }
+                const key = this.deviceSelect.value;
+                if (!key) {
+                    return null;
+                }
+                return this.deviceTargets.get(key) || null;
+            },
+
+            async processCommand() {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {controller.abort();}, 2000);
+                const command = this.input.value.trim();
+                const normalizedCommand = command.toLowerCase();
+                const selected = this.getSelectedDevice();
+                if (!command) {
+                    clearTimeout(timeoutId);
+                    return;
+                }
+                if (!selected) {
+                    clearTimeout(timeoutId);
+                    this.appendOutput('> Error: Please select a target device first.');
+                    return;
+                }
+                
+                this.commandHistory.push(command);
+                this.historyIndex = this.commandHistory.length;
+
+                if (normalizedCommand === 'help') {
+                    const hint = (typeof selected.inputHint === 'string') ? selected.inputHint.trim() : '';
+                    if (hint) {
+                        this.appendOutput(`> Help [${selected.bus}/${selected.name}]: ${hint}`);
+                    } else {
+                        this.appendOutput(`> Help [${selected.bus}/${selected.name}]: No registered hint.`);
+                    }
+                    clearTimeout(timeoutId);
+                    return;
+                }
+
+                const busPart = encodeURIComponent(selected.bus);
+                const devPart = encodeURIComponent(selected.name);
+                const inputPart = encodeURIComponent(command);
+                const requestPath = `/devTree/${busPart}/${devPart}:${inputPart}`;
+
+                try {
+                    const response = await fetch(requestPath, { signal: controller.signal });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    this.appendOutput(`> Error: send failed (${error.message})`);
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            },
+
+            appendOutput(text) {
+                if (Array.isArray(text)) {
+                    const str = text.map(item => String(item)).join('\n');
+                    this.output.value += str + '\n';
+                }else{
+                    this.output.value += text + '\n';
+                }
+                this.output.scrollTop = this.output.scrollHeight;
+            },
+
+            navigateHistory(direction) {
+                if (this.commandHistory.length === 0) return;
+                
+                this.historyIndex = Math.max(0, Math.min(this.commandHistory.length - 1, this.historyIndex + direction));
+                this.input.value = this.commandHistory[this.historyIndex] || '';
+            }
+        };
+
+        const controlSystem = {
+            init() {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {controller.abort();}, 2000);
+                document.getElementById('btnRestart').addEventListener('click', () => {
+                    fetch(`/restart_lua`).then(response => {
+                    clearTimeout(timeoutId);
+                    return response.json();
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                    });
+                    terminalManager.appendOutput('> Sending Lua restart command...');
+                });
+                document.getElementById('tree-table').addEventListener('click', (e) => {
+                    fetch(`/refresh_devtree`).then(response => {
+                    clearTimeout(timeoutId);
+                    return response.json();
+                    }).catch(error => {
+                        clearTimeout(timeoutId);
+                    });
+                    terminalManager.appendOutput('> Sending device tree refresh command...');
+                });
+            }
+        };
+
+        const updateManager = {
+            fileInput: null,
+            currentDeviceName: null,
+            currentDeviceBus: null,
+            init() {
+                this.fileInput = document.createElement('input');
+                this.fileInput.type = 'file';
+                this.fileInput.accept = '.lua,.txt,.uf2';
+                this.fileInput.style.display = 'none';
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                document.body.appendChild(this.fileInput);
+
+                const deviceTree = document.getElementById('dev-tree');
+                deviceTree.addEventListener('contextmenu', (e) => this.showContextMenu(e));
+                document.addEventListener('click', () => this.hideContextMenu());
+            },
+
+            showContextMenu(e) {
+                const deviceItem = e.target.closest('.dev-item');
+                if (!deviceItem) {
+                    this.hideContextMenu();
+                    return;
+                }
+                e.preventDefault(); 
+
+                this.currentDeviceName = deviceItem.dataset.name;
+                this.currentDeviceBus = deviceItem.dataset.bus; 
+                if (this.currentDeviceBus !== 'MLVDS') {
+                    this.hideContextMenu();
+                    return;
+                }
+
+                this.hideContextMenu();
+
+                let contextMenu = document.getElementById('deviceContextMenu');
+                if (!contextMenu) {
+                    contextMenu = document.createElement('div');
+                    contextMenu.id = 'deviceContextMenu';
+                    contextMenu.style.cssText = `
+                        position: absolute;
+                        background: white;
+                        border: 1px solid #ccc;
+                        border-radius: 4px;
+                        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+                        z-index: 1000;
+                        min-width: 150px;
+                        display: none;
+                    `;
+                    contextMenu.innerHTML = `<div class="context-item" data-action="updataFile" style="padding: 8px 12px; cursor: pointer;">Update Device Code</div>`;
+                    contextMenu.addEventListener('click', (e) => this.handleContextMenuClick(e));
+                    document.body.appendChild(contextMenu);
+                }
+
+                contextMenu.style.left = `${e.pageX}px`;
+                contextMenu.style.top = `${e.pageY}px`;
+                contextMenu.style.display = 'block';
+            },
+
+            hideContextMenu() {
+                const menu = document.getElementById('deviceContextMenu');
+                if (menu) menu.style.display = 'none';
+            },
+
+            handleContextMenuClick(e) {
+                const menuItem = e.target.closest('.context-item');
+                if (!menuItem) return;
+
+                if (menuItem.dataset.action === 'updataFile') {
+                    this.fileInput.click();
+                }
+                this.hideContextMenu();
+            },
+
+            async handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file || !this.currentDeviceName) {
+                    terminalManager.appendOutput('> Error: No file selected or device not specified.');
+                    return;
+                }
+                if (!/\.(lua|txt|uf2)$/i.test(file.name)) {
+                    terminalManager.appendOutput('> Error: Only .lua, .txt, and .uf2 files are supported.');
+                    event.target.value = '';
+                    return;
+                }
+
+                terminalManager.appendOutput(`> Selected file for device "${this.currentDeviceName}": ${file.name}`);
+
+                try {
+                    terminalManager.appendOutput('> Starting file upload...');
+                    await this.uploadFile(this.currentDeviceName, file);
+                    terminalManager.appendOutput('> Firmware upload process completed.');
+
+                } catch (error) {
+                    terminalManager.appendOutput(`> Error during processing: ${error.message}`);
+                } finally {
+                    event.target.value = '';
+                }
+            },
+
+            async uploadFile(deviceName, file) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => { controller.abort(); }, 30000);
+                try {
+                    this.updateConnectionStatus('uploading', `Uploading to ${deviceName}...`);
+
+                    const uploadUrl = `/upload/${encodeURIComponent(deviceName)}/${encodeURIComponent(file.name)}`;
+                    const response = await fetch(uploadUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream',
+                            'X-File-Size': String(file.size)
+                        },
+                        body: file,
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    const result = await response.json();
+                    this.updateConnectionStatus('connected', 'Connected');
+                    terminalManager.appendOutput(`> Upload result: ${result.message}`);
+                    return result;
+
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    this.updateConnectionStatus('connected', 'Connected');
+                    throw new Error(`Upload failed: ${error.message}`);
+                }
+            },
+            updateConnectionStatus(status, text) {
+                const statusElement = document.getElementById('connectionStatus');
+                if (!statusElement) return;
+                statusElement.textContent = text;
+                statusElement.className = 'connection-status';
+                if (status === 'uploading') {
+                    statusElement.classList.add('reconnecting'); 
+                } else if (status === 'connected') {
+                    statusElement.classList.add('connected');
+                } else {
+                    statusElement.classList.add('disconnected');
+                }
+            }
+        };
+        document.addEventListener('DOMContentLoaded', () => {
+            eventSourceManager.init();
+            deviceTreeManager.init();
+            terminalManager.init();
+            controlSystem.init();
+            updateManager.init();
+            
+            const statusElement = document.createElement('div');
+            statusElement.id = 'connectionStatus';
+            statusElement.className = 'connection-status';
+            statusElement.style = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                border-radius: 4px;
+                font-size: 14px;
+            `;
+            document.body.appendChild(statusElement);
+            
+            const style = document.createElement('style');
+            style.textContent = `
+                .connection-status.connected { background: #4CAF50; color: white; }
+                .connection-status.disconnected { background: #f44336; color: white; }
+                .connection-status.reconnecting { background: #FF9800; color: white; }
+            `;
+            document.head.appendChild(style);
+        });
+
+    </script>
+</body>
+</html>
+
+
