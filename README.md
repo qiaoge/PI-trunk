@@ -110,6 +110,12 @@ If the DNS name cannot be resolved, use the fixed IP address:
 http://192.168.7.1/
 ```
 
+The host's USB virtual network interface and the slave node's cannot be used simultaneously. 
+The slave node's IP address is 
+```text
+http://192.168.7.2/
+```
+
 ## 6. Web Management Page
 
 The Web page reads `index.html` from the device file area by default. The main page sections are:
