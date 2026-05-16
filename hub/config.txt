@@ -19,6 +19,6 @@
 #TaskSize = 4096
 #Priority = -1
 
-Path = /testlua.lua
+Path = /test_html_input_rx.lua
 TaskSize = 4096
 Priority = -1

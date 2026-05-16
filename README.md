@@ -43,10 +43,10 @@ By default, MLVDS uses the following GPIO pins:
 
 | Signal | GPIO |
 | --- | --- |
-| D | GPIO0 |
-| DE | GPIO1 |
-| R | GPIO2 |
-| RE | GPIO3 |
+| D | GPIO16 |
+| DE | GPIO17 |
+| RE | GPIO18 |
+| R | GPIO19 |
 
 The default MLVDS rate is configured at the 2.5 MBps level. Actual cabling, transceivers, power supply, and termination resistors must match the hardware design requirements.
 
